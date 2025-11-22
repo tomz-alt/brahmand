@@ -3,5 +3,6 @@
 /clickhouse_data
 
 .env
+.env.velodb
 
 .DS_Store

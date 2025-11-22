@@ -10,9 +10,11 @@ use tokio::sync::{OnceCell, RwLock};
 use crate::graph_catalog::graph_schema::GraphSchema;
 
 mod clickhouse_client;
+mod database;
 mod graph_catalog;
 mod handlers;
 mod models;
+pub mod velodb_client;
 
 // #[derive(Clone)]
 struct AppState {
