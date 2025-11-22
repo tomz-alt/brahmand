@@ -14,7 +14,29 @@ impl ToSql for RenderPlan {
     fn to_sql(&self) -> String {
         let mut sql = String::new();
         sql.push_str(&self.ctes.to_sql());
-        sql.push_str(&self.select.to_sql());
+
+        // Generate SELECT with DISTINCT if needed
+        if !self.select.0.is_empty() {
+            if self.distinct {
+                sql.push_str("SELECT DISTINCT \n");
+            } else {
+                sql.push_str("SELECT \n");
+            }
+
+            for (i, item) in self.select.0.iter().enumerate() {
+                sql.push_str("      ");
+                sql.push_str(&item.expression.to_sql());
+                if let Some(alias) = &item.col_alias {
+                    sql.push_str(" AS ");
+                    sql.push_str(&alias.0);
+                }
+                if i + 1 < self.select.0.len() {
+                    sql.push_str(", ");
+                }
+                sql.push('\n');
+            }
+        }
+
         sql.push_str(&self.from.to_sql());
         sql.push_str(&self.joins.to_sql());
         sql.push_str(&self.filters.to_sql());

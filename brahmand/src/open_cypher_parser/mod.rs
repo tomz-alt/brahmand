@@ -417,6 +417,7 @@ mod tests {
         assert!(query_ast.return_clause.is_some(), "Expected RETURN clause");
         let return_clause = query_ast.return_clause.unwrap();
         let expected_return_clause = ReturnClause {
+            distinct: false,
             return_items: vec![ReturnItem {
                 expression: Expression::PropertyAccessExp(PropertyAccess {
                     base: "otherPerson",
@@ -560,6 +561,7 @@ mod tests {
         assert!(query_ast.return_clause.is_some(), "Expected RETURN clause");
         let return_clause = query_ast.return_clause.unwrap();
         let expected_return_clause = ReturnClause {
+            distinct: false,
             return_items: vec![
                 // p as tom_hardy
                 ReturnItem {
@@ -729,6 +731,7 @@ mod tests {
         assert!(query_ast.return_clause.is_some(), "Expected RETURN clause");
         let return_clause = query_ast.return_clause.unwrap();
         let expected_return_clause = ReturnClause {
+            distinct: false,
             return_items: vec![ReturnItem {
                 expression: Expression::Variable("r"),
                 alias: None,
@@ -815,6 +818,7 @@ mod tests {
         assert!(query_ast.return_clause.is_some(), "Expected RETURN clause");
         let return_clause = query_ast.return_clause.unwrap();
         let expected_return_clause = ReturnClause {
+            distinct: false,
             return_items: vec![ReturnItem {
                 expression: Expression::Variable("n"),
                 alias: None,
@@ -968,6 +972,7 @@ mod tests {
         assert!(query_ast.return_clause.is_some(), "Expected RETURN clause");
         let return_clause = query_ast.return_clause.unwrap();
         let expected_return_clause = ReturnClause {
+            distinct: false,
             return_items: vec![ReturnItem {
                 expression: Expression::Variable("andres"),
                 alias: None,
@@ -1086,6 +1091,7 @@ mod tests {
         assert!(query_ast.return_clause.is_some(), "Expected RETURN clause");
         let return_clause = query_ast.return_clause.unwrap();
         let expected_return_clause = ReturnClause {
+            distinct: false,
             return_items: vec![ReturnItem {
                 expression: Expression::Variable("p"),
                 alias: None,
@@ -1224,6 +1230,7 @@ mod tests {
         assert!(query_ast.return_clause.is_some(), "Expected RETURN clause");
         let return_clause = query_ast.return_clause.unwrap();
         let expected_return_clause = ReturnClause {
+            distinct: false,
             return_items: vec![ReturnItem {
                 expression: Expression::Variable("p"),
                 alias: None,

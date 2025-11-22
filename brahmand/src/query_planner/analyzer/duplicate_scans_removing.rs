@@ -193,6 +193,7 @@ mod tests {
         // Wrap in Projection
         let projection = Arc::new(LogicalPlan::Projection(Projection {
             input: filter,
+            distinct: false,
             items: vec![ProjectionItem {
                 expression: LogicalExpr::Literal(Literal::String("test".to_string())),
                 col_alias: None,

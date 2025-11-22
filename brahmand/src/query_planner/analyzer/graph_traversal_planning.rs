@@ -838,6 +838,7 @@ impl GraphTRaversalPlanning {
                 table_alias: None,
                 table_name: Some(table_name),
             })),
+            distinct: false,
             items: vec![ProjectionItem {
                 expression: LogicalExpr::Column(Column(table_column)),
                 col_alias: None,

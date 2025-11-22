@@ -70,6 +70,7 @@ impl PlanSanitization {
                     let sanitized_projection = self.sanitize_projection(&projection.items);
                     let sanitized_projection_plan = LogicalPlan::Projection(Projection {
                         input: sanitized_input.get_plan(),
+                        distinct: false,
                         items: sanitized_projection,
                     });
                     Transformed::Yes(Arc::new(sanitized_projection_plan))

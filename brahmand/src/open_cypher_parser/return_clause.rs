@@ -30,6 +30,10 @@ pub fn parse_return_clause(
 
     let (input, _) = ws(tag_no_case("RETURN")).parse(input)?;
 
+    // Optionally parse DISTINCT
+    let (input, distinct) = opt(ws(tag_no_case("DISTINCT"))).parse(input)?;
+    let distinct = distinct.is_some();
+
     let (input, return_items) = context(
         "Error in return clause",
         separated_list1(
@@ -39,7 +43,7 @@ pub fn parse_return_clause(
     )
     .parse(input)?;
 
-    let return_clause = ReturnClause { return_items };
+    let return_clause = ReturnClause { distinct, return_items };
 
     Ok((input, return_clause))
 }
@@ -100,12 +104,46 @@ mod tests {
         match res {
             Ok((remaining, return_clause)) => {
                 assert_eq!(remaining, "");
+                assert_eq!(return_clause.distinct, false);
                 assert_eq!(return_clause.return_items.len(), 1);
                 let expected_item = ReturnItem {
                     expression: Expression::Variable("a"),
                     alias: None,
                 };
                 assert_eq!(&return_clause.return_items[0], &expected_item);
+            }
+            Err(e) => panic!("Parsing failed unexpectedly: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn test_parse_return_clause_distinct() {
+        let input = "RETURN DISTINCT a";
+        let res = parse_return_clause(input);
+        match res {
+            Ok((remaining, return_clause)) => {
+                assert_eq!(remaining, "");
+                assert_eq!(return_clause.distinct, true);
+                assert_eq!(return_clause.return_items.len(), 1);
+                let expected_item = ReturnItem {
+                    expression: Expression::Variable("a"),
+                    alias: None,
+                };
+                assert_eq!(&return_clause.return_items[0], &expected_item);
+            }
+            Err(e) => panic!("Parsing failed unexpectedly: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn test_parse_return_clause_distinct_multiple() {
+        let input = "RETURN DISTINCT a, b AS aliasB";
+        let res = parse_return_clause(input);
+        match res {
+            Ok((remaining, return_clause)) => {
+                assert_eq!(remaining, "");
+                assert_eq!(return_clause.distinct, true);
+                assert_eq!(return_clause.return_items.len(), 2);
             }
             Err(e) => panic!("Parsing failed unexpectedly: {:?}", e),
         }

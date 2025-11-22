@@ -35,6 +35,8 @@ pub(crate) trait RenderPlanBuilder {
 
     fn extract_skip(&self) -> Option<i64>;
 
+    fn extract_distinct(&self) -> bool;
+
     fn extract_union(&self) -> RenderPlanBuilderResult<Option<Union>>;
 
     fn to_render_plan(&self) -> RenderPlanBuilderResult<RenderPlan>;
@@ -321,6 +323,21 @@ impl RenderPlanBuilder for LogicalPlan {
         }
     }
 
+    fn extract_distinct(&self) -> bool {
+        match &self {
+            LogicalPlan::Projection(projection) => projection.distinct,
+            LogicalPlan::GraphNode(graph_node) => graph_node.input.extract_distinct(),
+            LogicalPlan::Filter(filter) => filter.input.extract_distinct(),
+            LogicalPlan::GraphJoins(graph_joins) => graph_joins.input.extract_distinct(),
+            LogicalPlan::GroupBy(group_by) => group_by.input.extract_distinct(),
+            LogicalPlan::OrderBy(order_by) => order_by.input.extract_distinct(),
+            LogicalPlan::Skip(skip) => skip.input.extract_distinct(),
+            LogicalPlan::Limit(limit) => limit.input.extract_distinct(),
+            LogicalPlan::Cte(cte) => cte.input.extract_distinct(),
+            _ => false,
+        }
+    }
+
     fn extract_union(&self) -> RenderPlanBuilderResult<Option<Union>> {
         let union_opt = match &self {
             LogicalPlan::Union(union) => Some(Union {
@@ -388,11 +405,14 @@ impl RenderPlanBuilder for LogicalPlan {
 
         let extracted_skip_item = self.extract_skip();
 
+        let extracted_distinct = self.extract_distinct();
+
         let extracted_union = self.extract_union()?;
 
         Ok(RenderPlan {
             ctes: CteItems(extracted_ctes),
             select: SelectItems(final_select_items),
+            distinct: extracted_distinct,
             from: FromTableItem(final_from),
             joins: JoinItems(extracted_joins),
             filters: FilterItems(final_filters),

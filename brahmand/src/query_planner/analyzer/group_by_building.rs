@@ -142,6 +142,7 @@ mod tests {
         let scan = create_scan(Some("user".to_string()), Some("users".to_string()));
         let projection = Arc::new(LogicalPlan::Projection(Projection {
             input: scan,
+            distinct: false,
             items: vec![
                 ProjectionItem {
                     expression: create_property_access("user", "name"),
@@ -190,6 +191,7 @@ mod tests {
         let scan = create_scan(Some("order".to_string()), Some("orders".to_string()));
         let projection = Arc::new(LogicalPlan::Projection(Projection {
             input: scan,
+            distinct: false,
             items: vec![
                 ProjectionItem {
                     expression: create_aggregate_function("count", "order", "id"),
@@ -222,6 +224,7 @@ mod tests {
         let scan = create_scan(Some("user".to_string()), Some("users".to_string()));
         let projection = Arc::new(LogicalPlan::Projection(Projection {
             input: scan,
+            distinct: false,
             items: vec![
                 ProjectionItem {
                     expression: create_property_access("user", "name"),
@@ -254,6 +257,7 @@ mod tests {
         let scan = create_scan(Some("user".to_string()), Some("users".to_string()));
         let projection = Arc::new(LogicalPlan::Projection(Projection {
             input: scan,
+            distinct: false,
             items: vec![
                 ProjectionItem {
                     expression: create_property_access("user", "name"),
@@ -311,6 +315,7 @@ mod tests {
         let scan = create_scan(Some("user".to_string()), Some("users".to_string()));
         let projection = Arc::new(LogicalPlan::Projection(Projection {
             input: scan,
+            distinct: false,
             items: vec![],
         }));
 

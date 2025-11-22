@@ -154,6 +154,7 @@ pub struct Filter {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Projection {
     pub input: Arc<LogicalPlan>,
+    pub distinct: bool,
     pub items: Vec<ProjectionItem>,
 }
 
@@ -228,6 +229,7 @@ impl Projection {
             Transformed::Yes(new_input) => {
                 let new_node = LogicalPlan::Projection(Projection {
                     input: new_input.clone(),
+                    distinct: self.distinct,
                     items: self.items.clone(),
                 });
                 Transformed::Yes(Arc::new(new_node))
@@ -503,6 +505,7 @@ impl LogicalPlan {
                     ],
                 }),
             })),
+            distinct: false,
             items: vec![ProjectionItem {
                 expression: LogicalExpr::Literal(Literal::Integer(1)),
                 col_alias: None,
@@ -687,6 +690,7 @@ mod tests {
 
         let projection = Projection {
             input: original_input.clone(),
+            distinct: false,
             items: projection_items.clone(),
         };
 
@@ -875,6 +879,7 @@ mod tests {
 
         let projection = LogicalPlan::Projection(Projection {
             input: Arc::new(filter),
+            distinct: false,
             items: vec![
                 ProjectionItem {
                     expression: LogicalExpr::PropertyAccessExp(PropertyAccess {

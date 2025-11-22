@@ -15,6 +15,7 @@ pub fn evaluate_return_clause<'a>(
         .collect();
     Arc::new(LogicalPlan::Projection(Projection {
         input: plan,
+        distinct: return_clause.distinct,
         items: projection_items,
     }))
 }

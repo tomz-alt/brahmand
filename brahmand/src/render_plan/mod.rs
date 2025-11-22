@@ -20,6 +20,7 @@ pub trait ToSql {
 pub struct RenderPlan {
     pub ctes: CteItems,
     pub select: SelectItems,
+    pub distinct: bool,
     pub from: FromTableItem,
     pub joins: JoinItems,
     pub filters: FilterItems,

@@ -64,6 +64,7 @@ impl AnalyzerPass for ProjectionTagging {
 
                 Transformed::Yes(Arc::new(LogicalPlan::Projection(Projection {
                     input: projection.input.clone(),
+                    distinct: false,
                     items: proj_items_to_mutate,
                 })))
             }

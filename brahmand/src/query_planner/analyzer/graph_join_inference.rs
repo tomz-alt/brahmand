@@ -1188,6 +1188,7 @@ mod tests {
 
         let input_logical_plan = Arc::new(LogicalPlan::Projection(Projection {
             input: graph_rel,
+            distinct: false,
             items: vec![ProjectionItem {
                 expression: LogicalExpr::PropertyAccessExp(PropertyAccess {
                     table_alias: TableAlias("p1".to_string()),
@@ -1313,6 +1314,7 @@ mod tests {
 
         let input_logical_plan = Arc::new(LogicalPlan::Projection(Projection {
             input: graph_rel,
+            distinct: false,
             items: vec![ProjectionItem {
                 expression: LogicalExpr::PropertyAccessExp(PropertyAccess {
                     table_alias: TableAlias("p1".to_string()),
@@ -1445,6 +1447,7 @@ mod tests {
 
         let input_logical_plan = Arc::new(LogicalPlan::Projection(Projection {
             input: graph_rel,
+            distinct: false,
             items: vec![ProjectionItem {
                 expression: LogicalExpr::PropertyAccessExp(PropertyAccess {
                     table_alias: TableAlias("p1".to_string()),
@@ -1566,6 +1569,7 @@ mod tests {
 
         let input_logical_plan = Arc::new(LogicalPlan::Projection(Projection {
             input: graph_rel,
+            distinct: false,
             items: vec![ProjectionItem {
                 expression: LogicalExpr::PropertyAccessExp(PropertyAccess {
                     table_alias: TableAlias("p1".to_string()),
@@ -1680,6 +1684,7 @@ mod tests {
         );
         let input_logical_plan = Arc::new(LogicalPlan::Projection(Projection {
             input: graph_rel,
+            distinct: false,
             items: vec![ProjectionItem {
                 expression: LogicalExpr::PropertyAccessExp(PropertyAccess {
                     table_alias: TableAlias("p1".to_string()),
@@ -1822,6 +1827,7 @@ mod tests {
 
         let input_logical_plan = Arc::new(LogicalPlan::Projection(Projection {
             input: second_rel,
+            distinct: false,
             items: vec![ProjectionItem {
                 expression: LogicalExpr::PropertyAccessExp(PropertyAccess {
                     table_alias: TableAlias("p1".to_string()),

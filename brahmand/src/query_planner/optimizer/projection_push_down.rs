@@ -44,6 +44,7 @@ impl OptimizerPass for ProjectionPushDown {
                     if !table_ctx.get_projections().is_empty() {
                         let new_proj = Arc::new(LogicalPlan::Projection(Projection {
                             input: logical_plan.clone(),
+                            distinct: false,
                             items: table_ctx.get_projections().clone(),
                         }));
                         Transformed::Yes(new_proj)
