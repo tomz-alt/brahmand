@@ -299,13 +299,31 @@ impl RenderExpr {
                 format!("({})", inner)
             }
             RenderExpr::ScalarFnCall(fn_call) => {
-                let args = fn_call
-                    .args
-                    .iter()
-                    .map(|e| e.to_sql())
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("{}({})", fn_call.name, args)
+                // Special handling for elementId() - convert to toString() for ClickHouse
+                if fn_call.name.eq_ignore_ascii_case("elementId") {
+                    if fn_call.args.len() == 1 {
+                        // elementId(n) -> toString(n.id) or just toString for the whole element
+                        let arg_sql = fn_call.args[0].to_sql();
+                        format!("toString({})", arg_sql)
+                    } else {
+                        // Invalid number of arguments, fallthrough to default
+                        let args = fn_call
+                            .args
+                            .iter()
+                            .map(|e| e.to_sql())
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        format!("{}({})", fn_call.name, args)
+                    }
+                } else {
+                    let args = fn_call
+                        .args
+                        .iter()
+                        .map(|e| e.to_sql())
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    format!("{}({})", fn_call.name, args)
+                }
             }
             RenderExpr::AggregateFnCall(agg) => {
                 let args = agg
