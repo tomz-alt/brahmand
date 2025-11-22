@@ -147,6 +147,7 @@ mod tests {
             left_connection: left_connection.to_string(),
             right_connection: right_connection.to_string(),
             is_rel_anchor: false,
+            variable_length: None,
         }))
     }
 

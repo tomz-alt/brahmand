@@ -548,6 +548,7 @@ mod tests {
                 key: "since",
                 value: ast::Expression::Literal(ast::Literal::Integer(2020)),
             })]),
+            variable_length: None,
         };
         let logical_relationship_pattern = RelationshipPattern::from(ast_relationship_pattern);
 
@@ -591,6 +592,7 @@ mod tests {
             direction: ast::Direction::Outgoing,
             label: Some("WORKS_AT"),
             properties: None,
+            variable_length: None,
         };
 
         let ast_connected_pattern = ast::ConnectedPattern {

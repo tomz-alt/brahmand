@@ -179,11 +179,18 @@ pub struct ConnectedPattern<'a> {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub struct VariableLengthSpec {
+    pub min_hops: Option<i64>,
+    pub max_hops: Option<i64>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct RelationshipPattern<'a> {
     pub name: Option<&'a str>,
     pub direction: Direction,
     pub label: Option<&'a str>,
     pub properties: Option<Vec<Property<'a>>>,
+    pub variable_length: Option<VariableLengthSpec>,
 }
 
 #[derive(Debug, PartialEq, Clone)]

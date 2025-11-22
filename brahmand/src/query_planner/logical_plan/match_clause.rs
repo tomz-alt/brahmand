@@ -135,6 +135,7 @@ fn traverse_connected_pattern<'a>(
                 left_connection: end_node_alias,
                 right_connection: start_node_alias,
                 is_rel_anchor: false,
+                variable_length: rel.variable_length.clone(),
             };
             plan_ctx.insert_table_ctx(
                 rel_alias.clone(),
@@ -182,6 +183,7 @@ fn traverse_connected_pattern<'a>(
                 left_connection: start_node_alias,
                 right_connection: end_node_alias,
                 is_rel_anchor: false,
+                variable_length: rel.variable_length.clone(),
             };
             plan_ctx.insert_table_ctx(
                 rel_alias.clone(),
@@ -244,6 +246,7 @@ fn traverse_connected_pattern<'a>(
                 left_connection: end_node_alias,
                 right_connection: start_node_alias,
                 is_rel_anchor: false,
+                variable_length: rel.variable_length.clone(),
             };
             plan_ctx.insert_table_ctx(
                 rel_alias.clone(),
@@ -545,6 +548,7 @@ mod tests {
             direction: ast::Direction::Outgoing,
             label: Some("WORKS_AT"),
             properties: None,
+            variable_length: None,
         };
 
         let connected_pattern = ast::ConnectedPattern {
@@ -630,6 +634,7 @@ mod tests {
             direction: ast::Direction::Incoming,
             label: Some("ASSIGNED_TO"),
             properties: None,
+            variable_length: None,
         };
 
         let connected_pattern = ast::ConnectedPattern {
@@ -690,6 +695,7 @@ mod tests {
             direction: ast::Direction::Either,
             label: Some("KNOWS"),
             properties: None,
+            variable_length: None,
         };
 
         let connected_pattern = ast::ConnectedPattern {
@@ -743,6 +749,7 @@ mod tests {
             direction: ast::Direction::Outgoing,
             label: Some("MANAGES"),
             properties: None,
+            variable_length: None,
         };
 
         let connected_pattern = ast::ConnectedPattern {

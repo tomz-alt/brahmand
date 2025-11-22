@@ -330,6 +330,7 @@ mod tests {
                         direction: Direction::Either,
                         label: None,
                         properties: None,
+                        variable_length: None,
                     },
                     end_node: Rc::new(RefCell::new(NodePattern {
                         name: Some("otherPerson"),
@@ -348,6 +349,7 @@ mod tests {
                         direction: Direction::Outgoing,
                         label: None,
                         properties: None,
+                        variable_length: None,
                     },
                     end_node: Rc::new(RefCell::new(NodePattern {
                         name: Some("b"),
@@ -501,6 +503,7 @@ mod tests {
                         direction: Direction::Outgoing,
                         label: Some("ACTED_IN"),
                         properties: None,
+                        variable_length: None,
                     },
                     end_node: Rc::new(RefCell::new(NodePattern {
                         name: Some("movie"),
@@ -520,6 +523,7 @@ mod tests {
                         direction: Direction::Incoming,
                         label: Some("DIRECTED"),
                         properties: None,
+                        variable_length: None,
                     },
                     end_node: Rc::new(RefCell::new(NodePattern {
                         name: Some("director"),
@@ -590,6 +594,7 @@ mod tests {
                                 direction: Direction::Outgoing,
                                 label: None,
                                 properties: None,
+                                variable_length: None,
                             },
                             end_node: Rc::new(RefCell::new(NodePattern {
                                 name: Some("c"),
@@ -718,6 +723,7 @@ mod tests {
                             key: "name",
                         }),
                     })]),
+                    variable_length: None,
                 },
                 end_node: Rc::new(RefCell::new(NodePattern {
                     name: Some("b"),

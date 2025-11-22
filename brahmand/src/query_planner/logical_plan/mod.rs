@@ -96,6 +96,7 @@ pub struct GraphRel {
     pub left_connection: String,
     pub right_connection: String,
     pub is_rel_anchor: bool,
+    pub variable_length: Option<crate::open_cypher_parser::ast::VariableLengthSpec>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -359,6 +360,7 @@ impl GraphRel {
                 direction: self.direction.clone(),
                 // is_anchor_graph_rel: self.is_anchor_graph_rel,
                 is_rel_anchor: self.is_rel_anchor,
+                variable_length: self.variable_length.clone(),
             });
             Transformed::Yes(Arc::new(new_graph_rel))
         } else {
@@ -760,6 +762,7 @@ mod tests {
             left_connection: "employee_id".to_string(),
             right_connection: "company_id".to_string(),
             is_rel_anchor: false,
+            variable_length: None,
         };
 
         let old_plan = Arc::new(LogicalPlan::GraphRel(graph_rel.clone()));

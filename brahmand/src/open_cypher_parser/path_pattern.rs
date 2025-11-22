@@ -9,7 +9,7 @@ use nom::{
     IResult, Parser,
     branch::alt,
     bytes::complete::tag,
-    character::complete::{alphanumeric1, multispace0, space0},
+    character::complete::{alphanumeric1, digit1, multispace0, space0},
     combinator::{map, opt},
     error::Error,
     multi::separated_list0,
@@ -18,7 +18,7 @@ use nom::{
 
 use super::ast::{
     ConnectedPattern, Direction, Expression, NodePattern, PathPattern, Property, PropertyKVPair,
-    RelationshipPattern,
+    RelationshipPattern, VariableLengthSpec,
 };
 use super::common::ws;
 use super::expression::parse_parameter;
@@ -240,10 +240,72 @@ fn parse_node_pattern(input: &'_ str) -> IResult<&'_ str, NodePattern<'_>> {
     alt((empty_node_parser, node_parser)).parse(input)
 }
 
+// Parses variable-length specifications: *, *1..3, *..5, *2..
+fn parse_variable_length_spec(input: &'_ str) -> IResult<&'_ str, Option<VariableLengthSpec>> {
+    let (input, star_opt) = opt(char('*')).parse(input)?;
+
+    if star_opt.is_none() {
+        return Ok((input, None));
+    }
+
+    // We found a '*', now parse the optional range
+    let (input, range_opt) = opt(map(
+        separated_pair(
+            opt(map(ws(digit1), |s: &str| s.parse::<i64>().unwrap())),
+            ws(tag("..")),
+            opt(map(ws(digit1), |s: &str| s.parse::<i64>().unwrap())),
+        ),
+        |(min, max)| (min, max)
+    )).parse(input)?;
+
+    match range_opt {
+        Some((min, max)) => {
+            // Has a range like *1..3, *..5, or *2..
+            Ok((input, Some(VariableLengthSpec {
+                min_hops: min,
+                max_hops: max,
+            })))
+        }
+        None => {
+            // Just *, which means 0 or more
+            Ok((input, Some(VariableLengthSpec {
+                min_hops: Some(0),
+                max_hops: None,
+            })))
+        }
+    }
+}
+
 fn parse_relationship_internals(
     input: &'_ str,
-) -> IResult<&'_ str, (NameOrLabelWithProperties<'_>, NameOrLabelWithProperties<'_>)> {
-    delimited(ws(char('[')), parse_name_label, ws(char(']'))).parse(input)
+) -> IResult<&'_ str, (NameOrLabelWithProperties<'_>, NameOrLabelWithProperties<'_>, Option<VariableLengthSpec>)> {
+    let (input, _) = ws(char('[')).parse(input)?;
+
+    // Parse the name (without properties)
+    let (input, name) = ws(opt(common::parse_alphanumeric_with_underscore)).parse(input)?;
+
+    // Parse optional colon and label (without properties)
+    let (input, label) = opt(map(
+        |input| {
+            let (input, _) = ws(char(':')).parse(input)?;
+            let (input, label) = ws(opt(common::parse_alphanumeric_with_underscore)).parse(input)?;
+            Ok((input, label))
+        },
+        |label| label
+    )).parse(input)?;
+
+    // Flatten the Option<Option<&str>> to Option<&str>
+    let label = label.flatten();
+
+    // Parse variable-length spec
+    let (input, variable_length) = parse_variable_length_spec.parse(input)?;
+
+    // Parse properties
+    let (input, properties) = opt(parse_properties).parse(input)?;
+
+    let (input, _) = ws(char(']')).parse(input)?;
+
+    Ok((input, ((name, None), (label, properties), variable_length)))
 }
 
 // Parse relationships - e.g -
@@ -258,6 +320,7 @@ fn parse_relationship_pattern(input: &'_ str) -> IResult<&'_ str, Option<Relatio
                 name: None,
                 label: None,
                 properties: None,
+                variable_length: None,
             }
         });
 
@@ -266,12 +329,14 @@ fn parse_relationship_pattern(input: &'_ str) -> IResult<&'_ str, Option<Relatio
         |(
             (relationship_name, properties_with_relationship_name),
             (relationship_label, properties_with_relationship_label),
+            variable_length,
         )| RelationshipPattern {
             direction: Direction::Incoming,
             name: relationship_name,
             label: relationship_label,
             properties: properties_with_relationship_name
                 .map_or(properties_with_relationship_label, Some),
+            variable_length,
         },
     );
 
@@ -282,6 +347,7 @@ fn parse_relationship_pattern(input: &'_ str) -> IResult<&'_ str, Option<Relatio
                 name: None,
                 label: None,
                 properties: None,
+                variable_length: None,
             }
         });
 
@@ -290,12 +356,14 @@ fn parse_relationship_pattern(input: &'_ str) -> IResult<&'_ str, Option<Relatio
         |(
             (relationship_name, properties_with_relationship_name),
             (relationship_label, properties_with_relationship_label),
+            variable_length,
         )| RelationshipPattern {
             direction: Direction::Outgoing,
             name: relationship_name,
             label: relationship_label,
             properties: properties_with_relationship_name
                 .map_or(properties_with_relationship_label, Some),
+            variable_length,
         },
     );
 
@@ -306,6 +374,7 @@ fn parse_relationship_pattern(input: &'_ str) -> IResult<&'_ str, Option<Relatio
                 name: None,
                 label: None,
                 properties: None,
+                variable_length: None,
             }
         });
 
@@ -314,12 +383,14 @@ fn parse_relationship_pattern(input: &'_ str) -> IResult<&'_ str, Option<Relatio
         |(
             (relationship_name, properties_with_relationship_name),
             (relationship_label, properties_with_relationship_label),
+            variable_length,
         )| RelationshipPattern {
             direction: Direction::Either,
             name: relationship_name,
             label: relationship_label,
             properties: properties_with_relationship_name
                 .map_or(properties_with_relationship_label, Some),
+            variable_length,
         },
     );
 
@@ -389,6 +460,7 @@ mod tests {
                     name: None,
                     label: None,
                     properties: None,
+                    variable_length: None,
                 };
                 // Compare start node.
                 assert_eq!(
@@ -446,6 +518,7 @@ mod tests {
                             name: None,
                             label: None,
                             properties: None,
+                            variable_length: None,
                         };
                         // Compare start node.
                         assert_eq!(
@@ -487,6 +560,7 @@ mod tests {
                     name: None,
                     label: None,
                     properties: None,
+                    variable_length: None,
                 };
                 // First connected pattern: from node1 to node2.
                 let connected_pattern_1: &ConnectedPattern<'_> = &connected_patterns[0];
@@ -507,6 +581,7 @@ mod tests {
                     name: None,
                     label: None,
                     properties: None,
+                    variable_length: None,
                 };
                 assert_eq!(&connected_pattern_2.relationship, &expected_relationship_2);
                 assert_eq!(
@@ -560,6 +635,7 @@ mod tests {
                     name: None,
                     label: Some("Pointing"),
                     properties: None,
+                    variable_length: None,
                 };
 
                 let expected_relationship_2 = RelationshipPattern {
@@ -570,6 +646,7 @@ mod tests {
                         key: "what",
                         value: Expression::Parameter("dontKnow"),
                     })]),
+                    variable_length: None,
                 };
                 // First connected pattern: from a to b.
                 let connected_pattern_1: &ConnectedPattern<'_> = &connected_patterns[0];
@@ -614,6 +691,290 @@ mod tests {
             }
             _ => {
                 panic!("Expected failure error for incomplete relationship pattern");
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_variable_length_spec_star_only() {
+        let input = "*]";
+        let result = parse_variable_length_spec(input);
+        match result {
+            Ok((remaining, Some(spec))) => {
+                assert_eq!(remaining, "]");
+                assert_eq!(spec.min_hops, Some(0));
+                assert_eq!(spec.max_hops, None);
+            }
+            _ => {
+                panic!("Expected successful parse of '*' pattern");
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_variable_length_spec_min_max() {
+        let input = "*1..3]";
+        let result = parse_variable_length_spec(input);
+        match result {
+            Ok((remaining, Some(spec))) => {
+                assert_eq!(remaining, "]");
+                assert_eq!(spec.min_hops, Some(1));
+                assert_eq!(spec.max_hops, Some(3));
+            }
+            _ => {
+                panic!("Expected successful parse of '*1..3' pattern");
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_variable_length_spec_max_only() {
+        let input = "*..5]";
+        let result = parse_variable_length_spec(input);
+        match result {
+            Ok((remaining, Some(spec))) => {
+                assert_eq!(remaining, "]");
+                assert_eq!(spec.min_hops, None);
+                assert_eq!(spec.max_hops, Some(5));
+            }
+            _ => {
+                panic!("Expected successful parse of '*..5' pattern");
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_variable_length_spec_min_only() {
+        let input = "*2..]";
+        let result = parse_variable_length_spec(input);
+        match result {
+            Ok((remaining, Some(spec))) => {
+                assert_eq!(remaining, "]");
+                assert_eq!(spec.min_hops, Some(2));
+                assert_eq!(spec.max_hops, None);
+            }
+            _ => {
+                panic!("Expected successful parse of '*2..' pattern");
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_variable_length_spec_none() {
+        let input = "]";
+        let result = parse_variable_length_spec(input);
+        match result {
+            Ok((remaining, None)) => {
+                assert_eq!(remaining, "]");
+            }
+            _ => {
+                panic!("Expected None when no '*' is present");
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_path_pattern_variable_length_star() {
+        let input = "()-[:KNOWS*]->()";
+        let result = parse_path_pattern(input);
+        match result {
+            Ok((remaining, PathPattern::ConnectedPattern(connected_patterns))) => {
+                assert_eq!(remaining, "");
+                assert_eq!(connected_patterns.len(), 1);
+                let connected_pattern = &connected_patterns[0];
+
+                let expected_relationship = RelationshipPattern {
+                    direction: Direction::Outgoing,
+                    name: None,
+                    label: Some("KNOWS"),
+                    properties: None,
+                    variable_length: Some(VariableLengthSpec {
+                        min_hops: Some(0),
+                        max_hops: None,
+                    }),
+                };
+
+                assert_eq!(&connected_pattern.relationship, &expected_relationship);
+            }
+            _ => {
+                panic!("Expected successful parse of variable-length relationship with '*'");
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_path_pattern_variable_length_range() {
+        let input = "()-[:KNOWS*1..3]->()";
+        let result = parse_path_pattern(input);
+        match result {
+            Ok((remaining, PathPattern::ConnectedPattern(connected_patterns))) => {
+                assert_eq!(remaining, "");
+                assert_eq!(connected_patterns.len(), 1);
+                let connected_pattern = &connected_patterns[0];
+
+                let expected_relationship = RelationshipPattern {
+                    direction: Direction::Outgoing,
+                    name: None,
+                    label: Some("KNOWS"),
+                    properties: None,
+                    variable_length: Some(VariableLengthSpec {
+                        min_hops: Some(1),
+                        max_hops: Some(3),
+                    }),
+                };
+
+                assert_eq!(&connected_pattern.relationship, &expected_relationship);
+            }
+            _ => {
+                panic!("Expected successful parse of variable-length relationship with '*1..3'");
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_path_pattern_variable_length_max_only() {
+        let input = "()-[:FOLLOWS*..5]->()";
+        let result = parse_path_pattern(input);
+        match result {
+            Ok((remaining, PathPattern::ConnectedPattern(connected_patterns))) => {
+                assert_eq!(remaining, "");
+                assert_eq!(connected_patterns.len(), 1);
+                let connected_pattern = &connected_patterns[0];
+
+                let expected_relationship = RelationshipPattern {
+                    direction: Direction::Outgoing,
+                    name: None,
+                    label: Some("FOLLOWS"),
+                    properties: None,
+                    variable_length: Some(VariableLengthSpec {
+                        min_hops: None,
+                        max_hops: Some(5),
+                    }),
+                };
+
+                assert_eq!(&connected_pattern.relationship, &expected_relationship);
+            }
+            _ => {
+                panic!("Expected successful parse of variable-length relationship with '*..5'");
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_path_pattern_variable_length_min_only() {
+        let input = "()<-[:MANAGES*2..]-()";
+        let result = parse_path_pattern(input);
+        match result {
+            Ok((remaining, PathPattern::ConnectedPattern(connected_patterns))) => {
+                assert_eq!(remaining, "");
+                assert_eq!(connected_patterns.len(), 1);
+                let connected_pattern = &connected_patterns[0];
+
+                let expected_relationship = RelationshipPattern {
+                    direction: Direction::Incoming,
+                    name: None,
+                    label: Some("MANAGES"),
+                    properties: None,
+                    variable_length: Some(VariableLengthSpec {
+                        min_hops: Some(2),
+                        max_hops: None,
+                    }),
+                };
+
+                assert_eq!(&connected_pattern.relationship, &expected_relationship);
+            }
+            _ => {
+                panic!("Expected successful parse of variable-length relationship with '*2..'");
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_path_pattern_variable_length_with_name_and_properties() {
+        let input = "(a)-[r:KNOWS*1..5 {since: 2020}]->(b)";
+        let result = parse_path_pattern(input);
+        match result {
+            Ok((remaining, PathPattern::ConnectedPattern(connected_patterns))) => {
+                assert_eq!(remaining, "");
+                assert_eq!(connected_patterns.len(), 1);
+                let connected_pattern = &connected_patterns[0];
+
+                let expected_relationship = RelationshipPattern {
+                    direction: Direction::Outgoing,
+                    name: Some("r"),
+                    label: Some("KNOWS"),
+                    properties: Some(vec![Property::PropertyKV(PropertyKVPair {
+                        key: "since",
+                        value: Expression::Literal(Literal::Integer(2020)),
+                    })]),
+                    variable_length: Some(VariableLengthSpec {
+                        min_hops: Some(1),
+                        max_hops: Some(5),
+                    }),
+                };
+
+                assert_eq!(&connected_pattern.relationship, &expected_relationship);
+            }
+            _ => {
+                panic!("Expected successful parse of variable-length relationship with name and properties");
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_path_pattern_variable_length_no_label() {
+        let input = "()-[*]->()";
+        let result = parse_path_pattern(input);
+        match result {
+            Ok((remaining, PathPattern::ConnectedPattern(connected_patterns))) => {
+                assert_eq!(remaining, "");
+                assert_eq!(connected_patterns.len(), 1);
+                let connected_pattern = &connected_patterns[0];
+
+                let expected_relationship = RelationshipPattern {
+                    direction: Direction::Outgoing,
+                    name: None,
+                    label: None,
+                    properties: None,
+                    variable_length: Some(VariableLengthSpec {
+                        min_hops: Some(0),
+                        max_hops: None,
+                    }),
+                };
+
+                assert_eq!(&connected_pattern.relationship, &expected_relationship);
+            }
+            _ => {
+                panic!("Expected successful parse of variable-length relationship without label");
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_path_pattern_variable_length_with_spaces() {
+        let input = "()-[:KNOWS * 1 .. 3]->()";
+        let result = parse_path_pattern(input);
+        match result {
+            Ok((remaining, PathPattern::ConnectedPattern(connected_patterns))) => {
+                assert_eq!(remaining, "");
+                assert_eq!(connected_patterns.len(), 1);
+                let connected_pattern = &connected_patterns[0];
+
+                let expected_relationship = RelationshipPattern {
+                    direction: Direction::Outgoing,
+                    name: None,
+                    label: Some("KNOWS"),
+                    properties: None,
+                    variable_length: Some(VariableLengthSpec {
+                        min_hops: Some(1),
+                        max_hops: Some(3),
+                    }),
+                };
+
+                assert_eq!(&connected_pattern.relationship, &expected_relationship);
+            }
+            _ => {
+                panic!("Expected successful parse with spaces in variable-length spec");
             }
         }
     }
