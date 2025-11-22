@@ -318,13 +318,20 @@ pub enum Expression<'a> {
 
     // A path-pattern, for instance: (a)-[]->()<-[]-(b)
     PathPattern(PathPattern<'a>),
-    // /// A CASE expression.
-    // /// `expr` is used for the simple CASE (e.g. CASE x WHEN ...), and if absent, it's the searched CASE.
-    // Case {
-    //     expr: Option<Box<Expression>>,
-    //     when_then: Vec<(Expression, Expression)>,
-    //     else_expr: Option<Box<Expression>>,
-    // },
+
+    // A CASE expression
+    CaseExp(CaseExpression<'a>),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct CaseExpression<'a> {
+    /// Optional expression for simple CASE (CASE x WHEN value...)
+    /// If None, it's a searched CASE (CASE WHEN condition...)
+    pub test_expr: Option<Box<Expression<'a>>>,
+    /// List of WHEN-THEN pairs
+    pub when_then_pairs: Vec<(Expression<'a>, Expression<'a>)>,
+    /// Optional ELSE expression
+    pub else_expr: Option<Box<Expression<'a>>>,
 }
 
 impl fmt::Display for Expression<'_> {

@@ -67,6 +67,7 @@ fn parse_postfix_expression(input: &'_ str) -> IResult<&'_ str, Expression<'_>> 
 
 fn parse_primary(input: &'_ str) -> IResult<&'_ str, Expression<'_>> {
     alt((
+        crate::open_cypher_parser::case_expression::parse_case_expression,
         parse_path_pattern_expression,
         parse_function_call,
         parse_postfix_expression,

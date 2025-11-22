@@ -4,11 +4,11 @@ use crate::render_plan::RenderPlan;
 use crate::query_planner::logical_expr::LogicalExpr;
 
 use crate::query_planner::logical_expr::{
-    AggregateFnCall as LogicalAggregateFnCall, Column as LogicalColumn,
-    ColumnAlias as LogicalColumnAlias, InSubquery as LogicalInSubquery, Literal as LogicalLiteral,
-    Operator as LogicalOperator, OperatorApplication as LogicalOperatorApplication,
-    PropertyAccess as LogicalPropertyAccess, ScalarFnCall as LogicalScalarFnCall,
-    TableAlias as LogicalTableAlias,
+    AggregateFnCall as LogicalAggregateFnCall, CaseExpression as LogicalCaseExpression,
+    Column as LogicalColumn, ColumnAlias as LogicalColumnAlias, InSubquery as LogicalInSubquery,
+    Literal as LogicalLiteral, Operator as LogicalOperator,
+    OperatorApplication as LogicalOperatorApplication, PropertyAccess as LogicalPropertyAccess,
+    ScalarFnCall as LogicalScalarFnCall, TableAlias as LogicalTableAlias,
 };
 
 use super::errors::RenderBuildError;
@@ -38,12 +38,24 @@ pub enum RenderExpr {
     OperatorApplicationExp(OperatorApplication),
 
     InSubquery(InSubquery),
+
+    CaseExp(CaseExpression),
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct InSubquery {
     pub expr: Box<RenderExpr>,
     pub subplan: Box<RenderPlan>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct CaseExpression {
+    /// Optional test expression for simple CASE
+    pub test_expr: Option<Box<RenderExpr>>,
+    /// List of WHEN-THEN pairs
+    pub when_then_pairs: Vec<(RenderExpr, RenderExpr)>,
+    /// Optional ELSE expression
+    pub else_expr: Option<Box<RenderExpr>>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -136,6 +148,7 @@ impl TryFrom<LogicalExpr> for RenderExpr {
                 RenderExpr::OperatorApplicationExp(op.try_into()?)
             }
             LogicalExpr::InSubquery(subq) => RenderExpr::InSubquery(subq.try_into()?),
+            LogicalExpr::CaseExp(case) => RenderExpr::CaseExp(case.try_into()?),
             // PathPattern is not present in RenderExpr
             _ => unimplemented!("Conversion for this LogicalExpr variant is not implemented"),
         };
@@ -153,6 +166,36 @@ impl TryFrom<LogicalInSubquery> for InSubquery {
             subplan: Box::new(sub_plan),
         };
         Ok(in_sub_query)
+    }
+}
+
+impl TryFrom<LogicalCaseExpression> for CaseExpression {
+    type Error = RenderBuildError;
+
+    fn try_from(value: LogicalCaseExpression) -> Result<Self, Self::Error> {
+        let test_expr = match value.test_expr {
+            Some(expr) => Some(Box::new((*expr).try_into()?)),
+            None => None,
+        };
+
+        let when_then_pairs = value
+            .when_then_pairs
+            .into_iter()
+            .map(|(when, then)| {
+                Ok((RenderExpr::try_from(when)?, RenderExpr::try_from(then)?))
+            })
+            .collect::<Result<Vec<(RenderExpr, RenderExpr)>, RenderBuildError>>()?;
+
+        let else_expr = match value.else_expr {
+            Some(expr) => Some(Box::new((*expr).try_into()?)),
+            None => None,
+        };
+
+        Ok(CaseExpression {
+            test_expr,
+            when_then_pairs,
+            else_expr,
+        })
     }
 }
 

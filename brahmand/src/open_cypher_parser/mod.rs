@@ -13,6 +13,7 @@ use nom::sequence::terminated;
 use nom::{IResult, Parser};
 
 pub mod ast;
+mod case_expression;
 mod common;
 mod create_clause;
 mod create_node_table_clause;

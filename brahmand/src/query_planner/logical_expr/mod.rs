@@ -40,12 +40,25 @@ pub enum LogicalExpr {
     PathPattern(PathPattern),
 
     InSubquery(InSubquery),
+
+    /// A CASE expression
+    CaseExp(CaseExpression),
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct InSubquery {
     pub expr: Box<LogicalExpr>,
     pub subplan: Arc<LogicalPlan>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct CaseExpression {
+    /// Optional test expression for simple CASE
+    pub test_expr: Option<Box<LogicalExpr>>,
+    /// List of WHEN-THEN pairs
+    pub when_then_pairs: Vec<(LogicalExpr, LogicalExpr)>,
+    /// Optional ELSE expression
+    pub else_expr: Option<Box<LogicalExpr>>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -367,6 +380,15 @@ impl<'a> From<open_cypher_parser::ast::Expression<'a>> for LogicalExpr {
                 LogicalExpr::OperatorApplicationExp(OperatorApplication::from(oa))
             }
             Expression::PathPattern(pp) => LogicalExpr::PathPattern(PathPattern::from(pp)),
+            Expression::CaseExp(case) => LogicalExpr::CaseExp(CaseExpression {
+                test_expr: case.test_expr.map(|e| Box::new(LogicalExpr::from(*e))),
+                when_then_pairs: case
+                    .when_then_pairs
+                    .into_iter()
+                    .map(|(when, then)| (LogicalExpr::from(when), LogicalExpr::from(then)))
+                    .collect(),
+                else_expr: case.else_expr.map(|e| Box::new(LogicalExpr::from(*e))),
+            }),
         }
     }
 }

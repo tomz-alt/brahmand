@@ -2,7 +2,8 @@ use crate::render_plan::render_expr::OperatorApplication;
 use crate::render_plan::{
     ToSql,
     render_expr::{
-        Column, ColumnAlias, InSubquery, Literal, Operator, PropertyAccess, RenderExpr, TableAlias,
+        CaseExpression, Column, ColumnAlias, InSubquery, Literal, Operator, PropertyAccess,
+        RenderExpr, TableAlias,
     },
     {
         Cte, CteItems, FilterItems, FromTableItem, GroupByExpressions, Join, JoinItems, JoinType,
@@ -385,6 +386,36 @@ impl RenderExpr {
                 let body = body.split_whitespace().collect::<Vec<&str>>().join(" ");
 
                 format!("{} IN ({})", left, body)
+            }
+            RenderExpr::CaseExp(CaseExpression {
+                test_expr,
+                when_then_pairs,
+                else_expr,
+            }) => {
+                let mut sql = String::from("CASE");
+
+                // Add test expression if present (for simple CASE)
+                if let Some(test) = test_expr {
+                    sql.push(' ');
+                    sql.push_str(&test.to_sql());
+                }
+
+                // Add WHEN-THEN pairs
+                for (when, then) in when_then_pairs {
+                    sql.push_str(" WHEN ");
+                    sql.push_str(&when.to_sql());
+                    sql.push_str(" THEN ");
+                    sql.push_str(&then.to_sql());
+                }
+
+                // Add ELSE clause if present
+                if let Some(else_val) = else_expr {
+                    sql.push_str(" ELSE ");
+                    sql.push_str(&else_val.to_sql());
+                }
+
+                sql.push_str(" END");
+                sql
             }
         }
     }
