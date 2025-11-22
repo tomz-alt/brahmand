@@ -1,7 +1,7 @@
 use ast::{
     CreateClause, CreateNodeTableClause, CreateRelTableClause, DeleteClause, LimitClause,
     MatchClause, OpenCypherQueryAst, OrderByClause, RemoveClause, ReturnClause, SetClause,
-    SkipClause, WhereClause, WithClause,
+    SkipClause, UnwindClause, WhereClause, WithClause,
 };
 use common::ws;
 use errors::OpenCypherParsingError;
@@ -29,6 +29,7 @@ mod remove_clause;
 mod return_clause;
 mod set_clause;
 mod skip_clause;
+mod unwind_clause;
 mod where_clause;
 mod with_clause;
 
@@ -51,6 +52,8 @@ pub fn parse_query_with_nom(
         opt(match_clause::parse_match_clause).parse(input)?;
     let (input, with_clause): (&str, Option<WithClause>) =
         opt(with_clause::parse_with_clause).parse(input)?;
+    let (input, unwind_clause): (&str, Option<UnwindClause>) =
+        opt(unwind_clause::parse_unwind_clause).parse(input)?;
     let (input, where_clause): (&str, Option<WhereClause>) =
         opt(where_clause::parse_where_clause).parse(input)?;
     let (input, create_node_table_clause): (&str, Option<CreateNodeTableClause>) =
@@ -77,6 +80,7 @@ pub fn parse_query_with_nom(
     let cypher_query = OpenCypherQueryAst {
         match_clause,
         with_clause,
+        unwind_clause,
         where_clause,
         create_clause,
         create_node_table_clause,

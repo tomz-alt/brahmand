@@ -6,6 +6,7 @@ use std::{cell::RefCell, fmt, rc::Rc};
 pub struct OpenCypherQueryAst<'a> {
     pub match_clause: Option<MatchClause<'a>>,
     pub with_clause: Option<WithClause<'a>>,
+    pub unwind_clause: Option<UnwindClause<'a>>,
     pub where_clause: Option<WhereClause<'a>>,
     pub create_clause: Option<CreateClause<'a>>,
     pub create_node_table_clause: Option<CreateNodeTableClause<'a>>,
@@ -93,6 +94,12 @@ pub struct WithClause<'a> {
 pub struct WithItem<'a> {
     pub expression: Expression<'a>,
     pub alias: Option<&'a str>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct UnwindClause<'a> {
+    pub expression: Expression<'a>,
+    pub alias: &'a str,
 }
 
 #[derive(Debug, PartialEq, Clone)]
