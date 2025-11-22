@@ -86,6 +86,7 @@ impl RenderPlanBuilder for LogicalPlan {
                 }
                 None
             }
+            LogicalPlan::Unwind(unwind) => unwind.input.extract_last_node_cte()?,
         };
         Ok(last_node_cte)
     }
@@ -147,6 +148,7 @@ impl RenderPlanBuilder for LogicalPlan {
                 }
                 Ok(ctes)
             }
+            LogicalPlan::Unwind(unwind) => unwind.input.extract_ctes(last_node_alias),
         }
     }
 
@@ -180,6 +182,17 @@ impl RenderPlanBuilder for LogicalPlan {
             LogicalPlan::Limit(limit) => limit.input.extract_select_items()?,
             LogicalPlan::Cte(cte) => cte.input.extract_select_items()?,
             LogicalPlan::Union(_) => vec![],
+            LogicalPlan::Unwind(unwind) => {
+                // UNWIND generates a SELECT with arrayJoin(expression) AS alias
+                let array_join_expr = RenderExpr::ScalarFnCall(ScalarFnCall {
+                    name: "arrayJoin".to_string(),
+                    args: vec![unwind.expression.clone().try_into()?],
+                });
+                vec![SelectItem {
+                    expression: array_join_expr,
+                    col_alias: Some(unwind.alias.clone().try_into()?),
+                }]
+            }
         };
 
         Ok(select_items)
@@ -206,6 +219,7 @@ impl RenderPlanBuilder for LogicalPlan {
             LogicalPlan::Limit(limit) => limit.input.extract_from()?,
             LogicalPlan::Cte(cte) => cte.input.extract_from()?,
             LogicalPlan::Union(_) => None,
+            LogicalPlan::Unwind(unwind) => unwind.input.extract_from()?,
         };
         Ok(from_table)
     }
@@ -225,6 +239,7 @@ impl RenderPlanBuilder for LogicalPlan {
             LogicalPlan::Cte(cte) => cte.input.extract_filters()?,
             LogicalPlan::GraphJoins(graph_joins) => graph_joins.input.extract_filters()?,
             LogicalPlan::Union(_) => None,
+            LogicalPlan::Unwind(unwind) => unwind.input.extract_filters()?,
         };
         Ok(filters)
     }

@@ -5,7 +5,7 @@ use crate::{
     query_planner::{
         logical_plan::{
             LogicalPlan, errors::LogicalPlanError, match_clause, order_by_clause, return_clause,
-            skip_n_limit_clause, where_clause,
+            skip_n_limit_clause, unwind_clause, where_clause,
         },
         plan_ctx::PlanCtx,
     },
@@ -18,6 +18,10 @@ pub fn build_logical_plan(
 ) -> LogicalPlanResult<(Arc<LogicalPlan>, PlanCtx)> {
     let mut logical_plan: Arc<LogicalPlan> = Arc::new(LogicalPlan::Empty);
     let mut plan_ctx = PlanCtx::default();
+
+    if let Some(unwind_clause) = &query_ast.unwind_clause {
+        logical_plan = unwind_clause::evaluate_unwind_clause(unwind_clause, logical_plan);
+    }
 
     if let Some(match_clause) = &query_ast.match_clause {
         logical_plan =

@@ -7,8 +7,8 @@
 ///
 /// Usage: cargo run --bin test_chdb
 
-use brahmand::server::clickhouse_client;
-use dotenv::dotenv;
+// use brahmand::server::clickhouse_client;
+// use dotenv::dotenv;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

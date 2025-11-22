@@ -119,6 +119,10 @@ impl GraphJoinInference {
                 }
                 union.rebuild_or_clone(inputs_tf, logical_plan.clone())
             }
+            LogicalPlan::Unwind(unwind) => {
+                let child_tf = Self::build_graph_joins(unwind.input.clone(), collected_graph_joins)?;
+                unwind.rebuild_or_clone(child_tf, logical_plan.clone())
+            }
         };
         Ok(transformed_plan)
     }
@@ -230,6 +234,13 @@ impl GraphJoinInference {
                 }
                 Ok(())
             }
+            LogicalPlan::Unwind(unwind) => self.collect_graph_joins(
+                unwind.input.clone(),
+                plan_ctx,
+                graph_schema,
+                collected_graph_joins,
+                joined_entities,
+            ),
         }
     }
 

@@ -223,6 +223,10 @@ impl AnchorNodeSelection {
                 }
                 union.rebuild_or_clone(inputs_tf, logical_plan.clone())
             }
+            LogicalPlan::Unwind(unwind) => {
+                let child_tf = Self::anchor_traversal(anchor_node_alias, unwind.input.clone())?;
+                unwind.rebuild_or_clone(child_tf, logical_plan.clone())
+            }
         };
         Ok(transformed_plan)
     }

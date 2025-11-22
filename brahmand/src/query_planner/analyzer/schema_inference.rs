@@ -115,6 +115,10 @@ impl SchemaInference {
                 }
                 union.rebuild_or_clone(inputs_tf, logical_plan.clone())
             }
+            LogicalPlan::Unwind(unwind) => {
+                let child_tf = Self::push_inferred_table_names_to_scan(unwind.input.clone(), plan_ctx)?;
+                unwind.rebuild_or_clone(child_tf, logical_plan.clone())
+            }
         };
         Ok(transformed_plan)
     }
@@ -233,6 +237,9 @@ impl SchemaInference {
                     Self::push_inferred_table_names_to_scan(input_plan.clone(), plan_ctx)?;
                 }
                 Ok(())
+            }
+            LogicalPlan::Unwind(unwind) => {
+                self.infer_schema(unwind.input.clone(), plan_ctx, graph_schema)
             }
         }
     }

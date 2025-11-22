@@ -84,6 +84,10 @@ impl AnalyzerPass for FilterTagging {
                 }
                 union.rebuild_or_clone(inputs_tf, logical_plan.clone())
             }
+            LogicalPlan::Unwind(unwind) => {
+                let child_tf = self.analyze(unwind.input.clone(), plan_ctx)?;
+                unwind.rebuild_or_clone(child_tf, logical_plan.clone())
+            }
         };
         Ok(transformed_plan)
     }

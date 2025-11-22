@@ -25,6 +25,7 @@ mod order_by_clause;
 pub mod plan_builder;
 mod return_clause;
 mod skip_n_limit_clause;
+mod unwind_clause;
 mod where_clause;
 
 pub fn evaluate_query(
@@ -69,6 +70,8 @@ pub enum LogicalPlan {
     GraphJoins(GraphJoins),
 
     Union(Union),
+
+    Unwind(Unwind),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -111,6 +114,13 @@ pub struct Union {
 pub enum UnionType {
     Distinct,
     All,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Unwind {
+    pub input: Arc<LogicalPlan>,
+    pub expression: LogicalExpr,
+    pub alias: ColumnAlias,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -428,6 +438,26 @@ impl Union {
     }
 }
 
+impl Unwind {
+    pub fn rebuild_or_clone(
+        &self,
+        input_tf: Transformed<Arc<LogicalPlan>>,
+        old_plan: Arc<LogicalPlan>,
+    ) -> Transformed<Arc<LogicalPlan>> {
+        match input_tf {
+            Transformed::Yes(new_input) => {
+                let new_node = LogicalPlan::Unwind(Unwind {
+                    input: new_input.clone(),
+                    expression: self.expression.clone(),
+                    alias: self.alias.clone(),
+                });
+                Transformed::Yes(Arc::new(new_node))
+            }
+            Transformed::No(_) => Transformed::No(old_plan.clone()),
+        }
+    }
+}
+
 impl<'a> From<CypherReturnItem<'a>> for ProjectionItem {
     fn from(value: CypherReturnItem<'a>) -> Self {
         ProjectionItem {
@@ -541,6 +571,9 @@ impl LogicalPlan {
                     children.push(input);
                 }
             }
+            LogicalPlan::Unwind(unwind) => {
+                children.push(&unwind.input);
+            }
             _ => {}
         }
 
@@ -569,6 +602,7 @@ impl LogicalPlan {
             LogicalPlan::Cte(cte) => format!("Cte({})", cte.name),
             LogicalPlan::GraphJoins(_) => "GraphJoins".to_string(),
             LogicalPlan::Union(_) => "Union".to_string(),
+            LogicalPlan::Unwind(unwind) => format!("Unwind({})", unwind.alias.0),
         }
     }
 }

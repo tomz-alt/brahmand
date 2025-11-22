@@ -112,6 +112,10 @@ impl PlanSanitization {
                 }
                 union.rebuild_or_clone(inputs_tf, logical_plan.clone())
             }
+            LogicalPlan::Unwind(unwind) => {
+                let child_tf = self.sanitize_plan(unwind.input.clone(), last_node_traversed)?;
+                unwind.rebuild_or_clone(child_tf, logical_plan.clone())
+            }
         };
         Ok(transformed_plan)
     }
